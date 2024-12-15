@@ -12,17 +12,23 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Entity
 @Table(name = "users")
 @Inheritance(strategy = InheritanceType.JOINED)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
-public abstract class User implements Serializable, UserDetails {
+public class User implements Serializable, UserDetails {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column( nullable = false)
+    private String name;
 
     @Column(unique = true, nullable = false)
     private String email;
@@ -42,13 +48,10 @@ public abstract class User implements Serializable, UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        if(this.role == UserRole.ADMIN){
-            return List.of(
-                    new SimpleGrantedAuthority("ROLE_ADMIN"),
-                    new SimpleGrantedAuthority("ROLE_CUSTOMER"),
-                    new SimpleGrantedAuthority("ROLE_CRAFTSMAN"),
-                    new SimpleGrantedAuthority("ROLE_COMPANY")
-            );
+        if (this.role == UserRole.ADMIN) {
+            return Stream.of(UserRole.values())
+                    .map(r -> new SimpleGrantedAuthority(r.getRole()))
+                    .collect(Collectors.toList());
         }
         return List.of(new SimpleGrantedAuthority(this.role.getRole()));
     }
